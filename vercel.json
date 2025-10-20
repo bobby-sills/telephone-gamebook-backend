@@ -1,9 +1,0 @@
-{
-  "redirects": [
-    {
-      "source": "/",
-      "destination": "https://bobbysills.dev/telephone-gamebook",
-      "permanent": false
-    }
-  ]
-}
