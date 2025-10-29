@@ -1,6 +1,4 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
 const VoiceResponse = require('twilio').twiml.VoiceResponse;
 const urlencoded = require('body-parser').urlencoded;
 const { stories } = require('./stories.js');
@@ -10,30 +8,10 @@ const app = express();
 // Parse incoming POST params with Express middleware
 app.use(urlencoded({ extended: false }));
 
-// Serve static files from the public directory
-app.use('/public', express.static('public'));
-
-// Fallback route to serve audio files as binary data
-app.get('/public/*', (request, response) => {
-  const filePath = path.join(__dirname, 'public', request.params[0]);
-
-  // Security: prevent directory traversal
-  if (!filePath.startsWith(path.join(__dirname, 'public'))) {
-    return response.status(403).send('Forbidden');
-  }
-
-  if (fs.existsSync(filePath)) {
-    response.type('audio/mpeg');
-    response.send(fs.readFileSync(filePath));
-  } else {
-    response.status(404).send('Not Found');
-  }
-});
-
-// Helper function to construct audio URL based on story and section ID
-// Audio files should be named with snake_case matching section IDs
-function getAudioUrl(storyId, sectionId, baseUrl) {
-  return `${baseUrl}/public/${storyId}/${sectionId}.mp3`;
+// Helper function to construct audio URL from GitHub raw content
+// Audio files are served from GitHub's raw content CDN for reliability
+function getAudioUrl(storyId, sectionId) {
+  return `https://raw.githubusercontent.com/bobby-sills/telephone-gamebook-backend/main/public/${storyId}/${sectionId}.mp3`;
 }
 
 // Create a route that will handle Twilio webhook requests, sent as an
@@ -72,17 +50,12 @@ app.post('/stories/:storyID/:sectionID', (request, response) => {
   const twiml = new VoiceResponse();
   const { storyID, sectionID } = request.params;
 
-  // Get the base URL from the request (works in both local dev and Vercel)
-  const protocol = request.get('x-forwarded-proto') || request.protocol;
-  const host = request.get('x-forwarded-host') || request.get('host');
-  const baseUrl = `${protocol}://${host}`;
-
   // Find the story and section
   const story = stories.find(s => s.id === storyID);
   const section = story.sections[sectionID];
 
-  // Play the audio file (contains both section text and choice options)
-  const audioUrl = `${baseUrl}/public/${storyID}/${sectionID}.mp3`;
+  // Play the audio file from GitHub (contains both section text and choice options)
+  const audioUrl = getAudioUrl(storyID, sectionID);
   twiml.play(audioUrl);
   twiml.pause({ length: 1 });
 
