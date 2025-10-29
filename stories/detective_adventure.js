@@ -1,5 +1,5 @@
 const jadeserpentCase = {
-  "id": "jade_serpent_case",
+  "id": "detective_adventure",
   "title": "The Jade Serpent Case",
   "start_section": "start",
   "sections": {

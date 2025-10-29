@@ -1,4 +1,6 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const VoiceResponse = require('twilio').twiml.VoiceResponse;
 const urlencoded = require('body-parser').urlencoded;
 const { stories } = require('./stories.js');
@@ -10,6 +12,23 @@ app.use(urlencoded({ extended: false }));
 
 // Serve static files from the public directory
 app.use('/public', express.static('public'));
+
+// Fallback route to serve audio files as binary data
+app.get('/public/*', (request, response) => {
+  const filePath = path.join(__dirname, 'public', request.params[0]);
+
+  // Security: prevent directory traversal
+  if (!filePath.startsWith(path.join(__dirname, 'public'))) {
+    return response.status(403).send('Forbidden');
+  }
+
+  if (fs.existsSync(filePath)) {
+    response.type('audio/mpeg');
+    response.send(fs.readFileSync(filePath));
+  } else {
+    response.status(404).send('Not Found');
+  }
+});
 
 // Helper function to construct audio URL based on story and section ID
 // Audio files should be named with snake_case matching section IDs

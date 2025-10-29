@@ -1,5 +1,5 @@
 const cursedKingdom = {
-  "id": "cursed_kingdom",
+  "id": "fantasy_adventure",
   "title": "Cursed Kingdom",
   "start_section": "start",
   "sections": {
