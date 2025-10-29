@@ -20,15 +20,18 @@ app.post('/voice', (request, response) => {
   // Use the Twilio Node.js SDK to build an XML response
   const twiml = new VoiceResponse();
 
+  // Play the pre-generated welcome menu audio
+  const welcomeAudioUrl = `https://raw.githubusercontent.com/bobby-sills/telephone-gamebook-backend/main/public/welcome.mp3`;
+  twiml.play(welcomeAudioUrl);
+  twiml.pause({ length: 1 });
+
   const gather = twiml.gather({
     numDigits: 1,
     action: '/storyselect',
   });
-  optionText = [];
-  for (let i = 0; i < stories.length && i < 9; i++) {
-    optionText.push(`Press ${i + 1} to begin the story titled the ${stories[i].title}. `);
-  }
-  gather.say({ rate: 'slow' }, `Welcome to the telephone game book. ${optionText.join('')}`);
+
+  // Add a pause in gather to wait for user input
+  gather.pause({ length: 10 });
 
   twiml.redirect('/voice');
   response.type('text/xml');
