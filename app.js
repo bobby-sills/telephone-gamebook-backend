@@ -8,6 +8,9 @@ const app = express();
 // Parse incoming POST params with Express middleware
 app.use(urlencoded({ extended: false }));
 
+// Serve static files from the public directory
+app.use('/public', express.static('public'));
+
 // Helper function to construct audio URL based on story and section ID
 // Audio files should be named with snake_case matching section IDs
 function getAudioUrl(storyId, sectionId, baseUrl) {
