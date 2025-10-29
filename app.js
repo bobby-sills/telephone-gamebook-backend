@@ -8,6 +8,12 @@ const app = express();
 // Parse incoming POST params with Express middleware
 app.use(urlencoded({ extended: false }));
 
+// Helper function to construct audio URL based on story and section ID
+// Audio files should be named with snake_case matching section IDs
+function getAudioUrl(storyId, sectionId, baseUrl) {
+  return `${baseUrl}/public/${storyId}/${sectionId}.mp3`;
+}
+
 // Create a route that will handle Twilio webhook requests, sent as an
 // HTTP POST to /voice in our application
 app.post('/voice', (request, response) => {
@@ -44,17 +50,23 @@ app.post('/stories/:storyID/:sectionID', (request, response) => {
   const twiml = new VoiceResponse();
   const { storyID, sectionID } = request.params;
 
+  // Get the base URL from the request (works in both local dev and Vercel)
+  const protocol = request.get('x-forwarded-proto') || request.protocol;
+  const host = request.get('x-forwarded-host') || request.get('host');
+  const baseUrl = `${protocol}://${host}`;
+
   // Find the story and section
   const story = stories.find(s => s.id === storyID);
   const section = story.sections[sectionID];
 
-  // Say the section text
-  twiml.say({ rate: 'slow' }, section.text);
+  // Play the audio file (contains both section text and choice options)
+  const audioUrl = `${baseUrl}/public/${storyID}/${sectionID}.mp3`;
+  twiml.play(audioUrl);
   twiml.pause({ length: 1 });
 
   // Check if this is an ending
   if (section.is_ending) {
-    // No choices - redirect back to main menu
+    // No choices - end the story
     twiml.pause({ length: 3 });
     twiml.hangup();
   } else {
@@ -64,11 +76,8 @@ app.post('/stories/:storyID/:sectionID', (request, response) => {
       action: `/stories/${storyID}/${sectionID}/choice`
     });
 
-    // Present each choice
-    for (let i = 0; i < section.choices.length; i++) {
-      gather.say({ rate: 'slow' }, `Press ${i + 1} to ${section.choices[i].label}.`);
-      gather.pause({ length: 1 });
-    }
+    // Add a pause in gather to wait for user input
+    gather.pause({ length: 10 });
 
     // If user doesn't press anything, repeat this section
     twiml.redirect(`/stories/${storyID}/${sectionID}`);
